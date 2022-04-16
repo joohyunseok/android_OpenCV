@@ -8,8 +8,6 @@ import android.util.Log;
 import android.view.View;
 
 import com.planit.opencv.databinding.ActivityMainBinding;
-
-import org.opencv.android.CameraActivity;
 import org.opencv.android.OpenCVLoader;
 
 public class MainActivity extends AppCompatActivity {

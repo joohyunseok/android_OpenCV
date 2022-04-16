@@ -1,7 +1,0 @@
-Executable : /Users/planit/Library/Android/sdk/cmake/3.18.1/bin/ninja
-arguments : 
--C
-/Users/planit/dev/android_OpenCV/OpenCV4/.cxx/Debug/c12986m2/arm64-v8a
-opencv_jni_shared
-jvmArgs : 
-
