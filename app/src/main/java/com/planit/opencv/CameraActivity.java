@@ -13,6 +13,7 @@ import android.nfc.Tag;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.SurfaceView;
+import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 
@@ -23,6 +24,7 @@ import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 
@@ -34,6 +36,8 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
     private Mat mRgba;
     private Mat mGray;
     private CameraBridgeViewBase mOpenCvCameraView;
+    //기본 카메라 전면카메라로 정의
+    private int mCamearId = 0;
     private BaseLoaderCallback mLoderCallback = new BaseLoaderCallback(this) {
         @Override
         public void onManagerConnected(int status) {
@@ -73,6 +77,28 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
 
         binding.frameSurface.setVisibility(SurfaceView.VISIBLE);
         binding.frameSurface.setCvCameraViewListener(this);
+
+        // Click Event : Image View
+        binding.ivFlipCamera.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                swapCamera();
+            }
+        });
+    }
+
+    private void swapCamera() {
+        // Change mCameraId
+        // if 0 change it to 1
+        // if 1 change it to 0
+        // xor연산자
+        mCamearId=mCamearId^1;
+        // 현재 카메라 오프
+        mOpenCvCameraView.disableView();
+        // 새로운 카메라 세팅
+        mOpenCvCameraView.setCameraIndex(mCamearId);
+        // 새로운 카메라 실행
+        mOpenCvCameraView.enableView();
     }
 
     @Override
@@ -96,7 +122,7 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
         }
     }
 
-    public void onDetroy(){
+    public void onDestroy(){
         super.onDestroy();
         if(mOpenCvCameraView != null){
             mOpenCvCameraView.disableView();
@@ -118,6 +144,12 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
         mRgba = inputFrame.rgba();
         mGray = inputFrame.gray();
+
+        //카메라 전면 카메라로 전환시 화면 180도 변환 되는 문제를 해결하기 위해 아래 코드 작성
+        if(mCamearId==1){
+            Core.flip(mRgba,mRgba, -1);
+            Core.flip(mGray,mGray, -1);
+        }
         return mRgba;
     }
 }
