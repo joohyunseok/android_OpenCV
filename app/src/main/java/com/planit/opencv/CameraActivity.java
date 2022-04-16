@@ -6,10 +6,7 @@ import androidx.core.content.ContextCompat;
 
 import android.Manifest;
 import android.app.Activity;
-import android.content.Context;
 import android.content.pm.PackageManager;
-import android.graphics.Camera;
-import android.nfc.Tag;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.SurfaceView;
@@ -18,7 +15,6 @@ import android.view.Window;
 import android.view.WindowManager;
 
 import com.planit.opencv.databinding.ActivityCameraBinding;
-import com.planit.opencv.databinding.ActivityMainBinding;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
@@ -75,8 +71,12 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
         binding = ActivityCameraBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        binding.frameSurface.setVisibility(SurfaceView.VISIBLE);
-        binding.frameSurface.setCvCameraViewListener(this);
+        //Camera 객체 연동 실패로 인해 수정
+        mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.frame_Surface);
+        mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
+        mOpenCvCameraView.setCvCameraViewListener(this);
+        //binding.frameSurface.setVisibility(SurfaceView.VISIBLE);
+        //binding.frameSurface.setCvCameraViewListener(this);
 
         // Click Event : Image View
         binding.ivFlipCamera.setOnClickListener(new View.OnClickListener() {
@@ -104,7 +104,7 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
     @Override
     protected void onResume() {
         super.onResume();
-        if(!OpenCVLoader.initDebug()){
+        if(OpenCVLoader.initDebug()){
             Log.d(TAG, "OpenCV initailization is done");
             mLoderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         }
