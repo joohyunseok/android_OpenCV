@@ -11,6 +11,7 @@ import android.content.ContentValues;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -37,6 +38,8 @@ import org.opencv.imgproc.Imgproc;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOError;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -145,7 +148,7 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
             mLoderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         }
         else{
-            Log.d(TAG, "OpenCv is not Loaded, try again");
+            Log.d(TAG, "OpenCV is not Loaded, try again");
             OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_4_0,this, mLoderCallback);
         }
     }
@@ -181,16 +184,16 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
         mRgba = inputFrame.rgba();
         mGray = inputFrame.gray();
 
-        //카메라 전면 카메라로 전환시 화면 180도 변환 되는 문제를 해결 하기 위해 아래 코드 작성
+        // 카메라 전면 카메라로 전환시 화면 180도 변환 되는 문제를 해결 하기 위해 아래 코드 작성
         if(mCamearId==1){
             Core.flip(mRgba,mRgba, -1);
             Core.flip(mGray,mGray, -1);
         }
 
-        // when we take picture
-        // if input 1 -> output 0
-        // so far next frame input will be 0
-        // it will take only one frame to save it
+        // 사진을 찍을 때
+        // input 1 이면 output 0
+        // 다음 촬영때까지 0으로 유지
+        // 하나당 한번씩만 촬영되도록 유지
         take_image=take_picture_function_rgb(take_image, mRgba);
 
         return mRgba;
@@ -199,57 +202,61 @@ public class CameraActivity extends Activity implements CameraBridgeViewBase.CvC
     private int take_picture_function_rgb(int take_image, Mat mRgba) {
         if(take_image==1){
             OutputStream fos = null;
-            // Create Bitmap to save it in Pictures folder of gallery
-
+            // 갤러리에 사진 넣을 비트맵 생성
             Bitmap save_Bitmap= Bitmap.createBitmap(mRgba.width(), mRgba.height(), Bitmap.Config.ARGB_8888);
             Utils.matToBitmap(mRgba, save_Bitmap);
 
-            // Make File Format and FileName
+            // 파일 네임과 경로 생성
             SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
             String currentDateAndTime = sdf.format(new Date());
             String fileName = Environment.getExternalStorageDirectory().getPath() + "/DCIM/Camera/" + currentDateAndTime + ".jpg";
 
+            // Q버전 이후에 출시 된 것은 갤러리에 들어가지 않으므로 contentsProvider 사용
             if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q){
 
-                ContentResolver resolver = getContentResolver();
+                // 비트맵 그대로 넣으면 90도 꺽여보여 90도 회전
+                Matrix matrix = new Matrix();
+                matrix.postRotate(90);
+                Bitmap rotated_save_Bitmap = Bitmap.createBitmap(save_Bitmap, 0, 0 ,save_Bitmap.getWidth(), save_Bitmap.getHeight(), matrix, true);
 
+
+                ContentResolver resolver = getContentResolver();
                 ContentValues contentValues = new ContentValues();
                 contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, currentDateAndTime + ".jpg");
                 contentValues.put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg");
                 contentValues.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES);
-                contentValues.put(MediaStore.MediaColumns.WIDTH, save_Bitmap.getWidth());
-                contentValues.put(MediaStore.MediaColumns.HEIGHT, save_Bitmap.getHeight());
-                Uri imageUri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues);
+                contentValues.put(MediaStore.MediaColumns.WIDTH, rotated_save_Bitmap.getWidth());
+                contentValues.put(MediaStore.MediaColumns.HEIGHT, rotated_save_Bitmap.getHeight());
+
                 try {
+                    Uri imageUri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues);
                     fos = resolver.openOutputStream(imageUri);
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 }
 
-                save_Bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+                rotated_save_Bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
 
+            }else{
+                // Convert Image to BGRA to save
+                Mat save_mat= new Mat();
+                Core.flip(mRgba.t(), save_mat, 1);
+                Imgproc.cvtColor(save_mat,save_mat,Imgproc.COLOR_RGBA2BGRA);
+
+                // Check Folder Directory
+                File folder = new File(Environment.getExternalStorageDirectory().getPath() + "/DCIM/Camera/planit/");
+                boolean success = true;
+                if(!folder.exists()){
+                    success=folder.mkdirs();
+                }
+                // 저장
+                Imgcodecs.imwrite(fileName, save_mat);
             }
-            // Convert Image to BGRA to save
-            Mat save_mat= new Mat();
-            Core.flip(mRgba.t(), save_mat, 1);
-            Imgproc.cvtColor(save_mat,save_mat,Imgproc.COLOR_RGBA2BGRA);
 
-            // Check Folder Directory
-            File folder = new File(Environment.getExternalStorageDirectory().getPath() + "/DCIM/Camera/");
-            boolean success = true;
-            if(!folder.exists()){
-                success=folder.mkdirs();
-            }
-
-
-
-            // Save File
-            boolean save_photo_flag = true;
-            save_photo_flag = Imgcodecs.imwrite(fileName, save_mat);
-
-            //reset take_image to wait
+            // reset take_image to wait
             take_image=0;
         }
         return take_image;
+
     }
 }
