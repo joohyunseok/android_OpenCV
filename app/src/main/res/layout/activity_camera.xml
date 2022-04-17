@@ -23,9 +23,23 @@
         <ImageView
             android:layout_width="40dp"
             android:layout_height="40dp"
+            android:layout_marginTop="30dp"
+            android:layout_marginRight="50dp"/>
+        <ImageView
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:id="@+id/iv_takePicture"
+            android:src="@drawable/icon_take_picture"
+            android:layout_marginTop="10dp"/>
+
+        <ImageView
             android:id="@+id/iv_flipCamera"
-            android:src="@drawable/ic_baseline_flip_camera_ios_24"
-            android:layout_marginTop="30dp"/>
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginTop="30dp"
+            android:layout_marginLeft="50dp"
+            android:src="@drawable/icon_flip_camera" />
+
     </LinearLayout>
 
 
